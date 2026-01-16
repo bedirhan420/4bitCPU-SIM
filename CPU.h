@@ -63,10 +63,10 @@ public:
     void execute(){
         if(halted) return;
 
-        uint8_t oopcode = (IR & 0xF0) >> 4;
+        uint8_t opcode = (IR & 0xF0) >> 4;
         uint8_t operand = (IR & 0x0F);
 
-        switch (oopcode)
+        switch (opcode)
         {
         case 0x0: // NOP
             break;
@@ -109,6 +109,19 @@ public:
         case 0x8: // XOR [addr]
             ACC = ACC ^ RAM[operand];
             Z = (ACC == 0);
+            break;
+        case 0x9: // LDAI [operand]
+            {
+                uint8_t targetAddr = RAM[operand] & 0xF;
+                ACC = RAM[targetAddr];
+                Z = (ACC==0);
+            }
+            break;
+        case 0xA:
+            {
+                uint8_t targetAddr = RAM[operand] & 0xF;
+                RAM[targetAddr] = ACC;
+            }
             break;
         case 0xB: // JMP
             PC = ROM[PC];

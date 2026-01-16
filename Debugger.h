@@ -30,6 +30,8 @@ std::string disassemble(uint8_t byte) {
         return opStr + " (Addr)"; 
     } else if (opcode == 0xF || opcode == 0x0) {
         return opStr; 
+    }else if (opcode == 0x2) { // LDI -> Immediate
+        return opStr + " " + std::to_string(operand);
     } else {
         return opStr + " [" + std::to_string(operand) + "]";
     }

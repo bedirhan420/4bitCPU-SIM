@@ -13,8 +13,13 @@ namespace ISA {
     inline const std::map<std::string, uint8_t> OPCODES = {
         {"NOP",0x0}, {"LDA",0x1}, {"LDI",0x2}, {"STA",0x3},
         {"ADD",0x4}, {"SUB",0x5}, {"AND",0x6}, {"OR", 0x7},
-        {"XOR",0x8}, {"JMP", 0xB}, {"JZ",  0xC}, {"JC",  0xD},
-        {"CALL", 0xE}
+        {"XOR",0x8},{"LDAI", 0x9},{"STAI", 0xA}, {"JMP", 0xB}, 
+        {"JZ",  0xC}, {"JC",  0xD},{"CALL", 0xE}
+    };
+
+    inline const std::map<uint8_t,std::string> SUBCODES = {
+        {0x0,"HLT"}, {0x1,"RST"}, {0x2,"OUT"}, {0x3,"NOT"},
+        {0x4,"PUSH"}, {0x5,"POP"}, {0x6,"RET"}
     };
     
     // Standard Codes => without Operand
@@ -33,15 +38,10 @@ namespace ISA {
     inline std::string getMnemonic(uint8_t opcode, uint8_t operand) {
         // If Opcode is F , found the insruction acording to Operand
         if (opcode == 0xF) {
-            switch(operand) {
-                case 0x0: return "HLT";
-                case 0x1: return "RST";
-                case 0x2: return "OUT";
-                case 0x3: return "NOT";
-                case 0x4: return "PUSH";
-                case 0x5: return "POP";
-                case 0x6: return "RET";
-                default:  return "EXT?";
+            if (SUBCODES.count(operand)) {
+                return SUBCODES.at(operand);
+            } else {
+                return "EXT?"; // Undefined Subcode
             }
         }
         
