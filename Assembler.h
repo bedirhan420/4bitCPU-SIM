@@ -12,7 +12,6 @@
 
 class Assembler{
 private:
-    std::map<std::string, uint8_t> opcodeMap;
     std::map<std::string, int> symbolTable;
 
     std::string trim(const std::string& str){
@@ -32,7 +31,7 @@ public:
     Assembler(){
     }
 
-    std::vector<uint8_t> assembly(const std::string& sourceCode){
+    std::vector<uint8_t> assemble(const std::string& sourceCode){
         std::vector<std::string> lines;
         std::stringstream ss(sourceCode);
         std::string line;
@@ -67,7 +66,13 @@ public:
             std::stringstream ls(temp);
             std::string m ; ls >> m; // Take the first word (Mnemonic) ;  >> : read until whitespace
             std::transform(m.begin(),m.end(),m.begin(),::toupper); // how much memory does this instruction occupy
-            addr += (ISA::isJumpInstruction(m)?2:1);
+            
+            // if not in map => wrong or extended
+            int opcodeID = 0;
+            if (ISA::OPCODES.count(m)) opcodeID = ISA::OPCODES.at(m);
+            else opcodeID = 0;
+            
+            addr += (ISA::isTwoByteInstruction(m)?2:1);
         }
 
         // Second Pass => Machine Code Generation
@@ -86,27 +91,35 @@ public:
             std::string m,opStr;
             ls >> m; // take opcode such as LDA
             std::transform(m.begin(),m.end(),m.begin(),::toupper);
-
-            if (ISA::OPCODES.find(m) == ISA::OPCODES.end()) {
-                std::cerr << "ERROR: Unknowned insturct -> " << m << "\n";
+         
+            uint8_t opcode = 0;
+            uint8_t operand = 0;
+            uint8_t subCode = 0;
+            
+            // EXTENDED
+            if (ISA::isExtendedInstruction(m, subCode)) {
+                opcode = 0xF;    
+                operand = subCode; 
+            }
+            else if (ISA::OPCODES.count(m)) {
+                opcode = ISA::OPCODES.at(m);
+                if (ls >> opStr) // second word (operand) such as "5" , "[10]" , "LOOP"
+                {
+                    if (symbolTable.count(opStr)) operand = symbolTable[opStr]; // take label address from symbol table
+                    else // number or address
+                    {
+                        opStr.erase(std::remove(opStr.begin(),opStr.end(),'['),opStr.end());
+                        opStr.erase(std::remove(opStr.begin(),opStr.end(),']'),opStr.end()); // remove [ ] for address
+                        try{ operand = std::stoi(opStr);}catch(...){}; // string to int                   
+                    }
+                }   
+            }else{
+                std::cerr << "Error: Unknowned Instruction -> " << m << "\n";
                 return {};
             }
-            uint8_t opcode = ISA::OPCODES.at(m); // take opcode id from map such as LDA->0x1
 
-            // operand
-            uint8_t operand = 0;
-            if (ls >> opStr) // second word (operand) such as "5" , "[10]" , "LOOP"
-            {
-                if (symbolTable.count(opStr)) operand = symbolTable[opStr]; // take label address from symbol table
-                else // number or address
-                {
-                    opStr.erase(std::remove(opStr.begin(),opStr.end(),'['),opStr.end());
-                    opStr.erase(std::remove(opStr.begin(),opStr.end(),']'),opStr.end()); // remove [ ] for address
-                    try{ operand = std::stoi(opStr);}catch(...){}; // string to int                   
-                }
-            }   
 
-            if (ISA::isJumpInstruction(opcode)) // such as JMP 32 => Byte 1 (JMP<<4) : [1011 0000] , Byte 2 (32) : [0010 0000] => 0xB0 0x20
+            if (ISA::isTwoByteInstruction(opcode)) // such as JMP 32 => Byte 1 (JMP<<4) : [1011 0000] , Byte 2 (32) : [0010 0000] => 0xB0 0x20
             {
                 machineCode.push_back((opcode << 4));
                 machineCode.push_back(operand);

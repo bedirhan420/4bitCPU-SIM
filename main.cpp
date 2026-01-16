@@ -37,7 +37,7 @@ int main(int argc, char* argv[]){
     cpu.setRAM(3,1);
     cpu.setRAM(10, 1);
 
-    std::vector<uint8_t> program = assembler.assembly(source);
+    std::vector<uint8_t> program = assembler.assemble(source);
     cpu.loadProgram(program);
 
     char cmd = 0;

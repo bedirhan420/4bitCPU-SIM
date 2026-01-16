@@ -12,6 +12,7 @@ public:
     uint8_t ACC = 0; // Accumulator Register (4 bit)
     uint8_t PC = 0; // Program Counter Register (8 bit)
     uint8_t IR = 0; // Instruction Register (8 bit)
+    uint8_t SP = 0 ; // Stack Pointer Register (8 bit)
     
     //FLAGS
     bool Z = false; // Zero Flag
@@ -20,12 +21,14 @@ public:
     //MEMORY (HARVARD)
     std::vector<uint8_t> ROM; // Program Memmory (256 byte)
     std::vector<uint8_t> RAM; // Data Memmory (16 nibble)
+    std::vector<uint8_t> STACK; // Stack (16 )
 
     bool halted = false;
 
     CPU4bit(){
         ROM.resize(256,0);
         RAM.resize(16,0);
+        STACK.resize(16, 0);
     }
 
     void loadProgram(const std::vector<uint8_t>& code){
@@ -107,13 +110,6 @@ public:
             ACC = ACC ^ RAM[operand];
             Z = (ACC == 0);
             break;
-        case 0x9: // NOT 
-            ACC = (~ACC) & 0xF;
-            Z = (ACC == 0);
-            break;
-        case 0xA: // OUT
-            std::cout << ">>>OUT PORT: " << (int)ACC << "\n";
-            break;
         case 0xB: // JMP
             PC = ROM[PC];
             break;
@@ -125,11 +121,52 @@ public:
             if(C) PC = ROM[PC];
             else PC++;
             break;
-        case 0xE: //RST
-            PC = 0; ACC = 0; Z=0; C=0;
+        case 0xE: // CALL
+            if (SP < STACK.size())
+            {
+                STACK[SP] = PC+1;
+                SP++;
+            }
+            PC = ROM[PC];
             break;
-        case 0xF: // HLT
-            halted = true;
+        case 0xF:
+            switch (operand)
+            {
+            case 0x0: // HLT
+                halted = true;
+                break;
+            case 0x1: //RST
+                PC = 0; ACC=0; SP=0; 
+                break;
+            case 0x2: // OUT
+                std::cout << ">>> OUT: " << (int)ACC << "\n"; 
+                break;
+            case 0x3: // NOT
+                ACC = (~ACC) & 0xF;
+                Z = (ACC == 0); 
+                break;
+            case 0x4: // PUSH
+                if (SP<STACK.size()){
+                    STACK[SP] = ACC;
+                    SP++;
+                }
+                break;
+            case 0x5: // POP
+                if (SP>0)
+                {
+                    SP--;
+                    ACC = STACK[SP];
+                }
+                break;
+            case 0x6: // RET
+                if (SP>0)
+                {
+                    SP--;
+                    PC = STACK[SP];
+                }
+                
+                break;
+            }
             break;
         default:
             halted=true;
