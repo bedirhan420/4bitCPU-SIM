@@ -1,0 +1,124 @@
+#ifndef ASSEMBLER_H
+#define ASSEMBLER_H
+
+#include <iostream>
+#include <vector>
+#include <string> 
+#include <sstream> // string stream
+#include <map> // for hashtable ds
+#include <algorithm> // for find , sort etc.
+
+#include "InstructionSet.h" 
+
+class Assembler{
+private:
+    std::map<std::string, uint8_t> opcodeMap;
+    std::map<std::string, int> symbolTable;
+
+    std::string trim(const std::string& str){
+        size_t first = str.find_first_not_of(" \t\r\n"); // first char is not gap from left to right
+        if (std::string::npos == first) return ""; // empty string
+        size_t last = str.find_last_not_of(" \t\r\n"); // first char is not gap from right to left
+        return str.substr(first,(last-first+1)); // start , how many
+    }
+
+    std::string removeComments(const std::string& line){
+        size_t commentPos = line.find(";");
+        if (commentPos != std::string::npos) return line.substr(0,commentPos);
+        return line;
+    }
+
+public:
+    Assembler(){
+    }
+
+    std::vector<uint8_t> assembly(const std::string& sourceCode){
+        std::vector<std::string> lines;
+        std::stringstream ss(sourceCode);
+        std::string line;
+         
+        // Lexival Analysis Preprocessing => Cleaning
+        while (std::getline(ss,line)) // read until \n
+        {
+            line = removeComments(line);
+            line = trim(line);
+            if (!line.empty()) lines.push_back(line);
+        }
+        
+        // First Pass => Symbol Resolution , label
+        symbolTable.clear();
+
+        int addr = 0; // virtual PC
+        for (const auto& l : lines)
+        {
+            std::string temp = l;
+            // Just label such as "LOOP:"
+            if (temp.back() == ':'){
+                symbolTable[temp.substr(0,temp.length()-1)] = addr;
+                continue; // label doesn't take up space in tag memory; 
+            }
+            size_t col = temp.find(':');
+            // both label and instruct such as "START: MOV A, 5"
+            if (col != std::string::npos)
+            {
+                symbolTable[trim(temp.substr(0,col))] = addr; // save the text before the : as a label.
+                temp = trim(temp.substr(col+1)); //continue processing the remaining part.
+            }
+            std::stringstream ls(temp);
+            std::string m ; ls >> m; // Take the first word (Mnemonic) ;  >> : read until whitespace
+            std::transform(m.begin(),m.end(),m.begin(),::toupper); // how much memory does this instruction occupy
+            addr += (ISA::isJumpInstruction(m)?2:1);
+        }
+
+        // Second Pass => Machine Code Generation
+        std::vector<uint8_t> machineCode;
+        for (const auto& l : lines)
+        {   
+            // instruct
+            std::string temp = l;
+            if (temp.back() == ':') continue;
+            size_t col = temp.find(':');
+            if (col != std::string::npos) temp = trim(temp.substr(col+1)); // clip label , take instruct
+            if (temp.empty()) continue;
+
+            // opcode 
+            std::stringstream ls(temp);
+            std::string m,opStr;
+            ls >> m; // take opcode such as LDA
+            std::transform(m.begin(),m.end(),m.begin(),::toupper);
+
+            if (ISA::OPCODES.find(m) == ISA::OPCODES.end()) {
+                std::cerr << "ERROR: Unknowned insturct -> " << m << "\n";
+                return {};
+            }
+            uint8_t opcode = ISA::OPCODES.at(m); // take opcode id from map such as LDA->0x1
+
+            // operand
+            uint8_t operand = 0;
+            if (ls >> opStr) // second word (operand) such as "5" , "[10]" , "LOOP"
+            {
+                if (symbolTable.count(opStr)) operand = symbolTable[opStr]; // take label address from symbol table
+                else // number or address
+                {
+                    opStr.erase(std::remove(opStr.begin(),opStr.end(),'['),opStr.end());
+                    opStr.erase(std::remove(opStr.begin(),opStr.end(),']'),opStr.end()); // remove [ ] for address
+                    try{ operand = std::stoi(opStr);}catch(...){}; // string to int                   
+                }
+            }   
+
+            if (ISA::isJumpInstruction(opcode)) // such as JMP 32 => Byte 1 (JMP<<4) : [1011 0000] , Byte 2 (32) : [0010 0000] => 0xB0 0x20
+            {
+                machineCode.push_back((opcode << 4));
+                machineCode.push_back(operand);
+            }else // such as  ADD 5 => Nibble 1 (ADD): [0100]  , Nibble 2 (5): [0101] : [0100 0101] => 0x45
+            {
+                machineCode.push_back((opcode << 4)|(operand & 0xF));
+            }
+        }
+        return machineCode;
+    }
+
+};
+
+
+#endif
