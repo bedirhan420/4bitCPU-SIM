@@ -110,6 +110,10 @@ void drawUI(const CPU4bit& cpu) {
     }
     std::cout << "-----------------------------------------\n";
     std::cout << "[ENTER] STEP | [Q] QUIT\n";
+
+    std::cout << "=========================================\n";
+    std::cout << " " << cpu.consoleBuffer << "\n"; 
+    std::cout << "=========================================\n";
 }
 
 #endif

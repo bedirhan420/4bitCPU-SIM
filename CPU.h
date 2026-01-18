@@ -6,6 +6,7 @@
 #include <iostream> // input output stream
 #include <cstdlib> // C standard : mem , translations , ...
 #include <map>
+#include <string>
 
 class CPU4bit{
 public:
@@ -25,6 +26,8 @@ public:
     std::vector<uint8_t> STACK; // Stack (16 )
 
     bool halted = false;
+
+    std::string consoleBuffer = "System Ready.";
 
     CPU4bit(){
         ROM.resize(256,0);
@@ -83,7 +86,13 @@ public:
         case 0x0: // NOP
             break;
         case 0x1: // LDA[addr]
-            if (operand == 14) ACC = rand() % 16; // Memmory Mapped I/O
+            if (operand == 14) {// Memmory Mapped I/O
+                int val;
+                std::cout << "\n>>> ENTER A VALUE (0-15): ";
+                std::cin >> val;
+                ACC = val & 0xF;
+                RAM[14] = ACC;
+            }
             else ACC = RAM[operand];
             Z = (ACC == 0);
             break;
@@ -164,7 +173,7 @@ public:
                 PC = 0; ACC=0; SP=0; 
                 break;
             case 0x2: // OUT
-                std::cout << ">>> OUT: " << (int)ACC << "\n"; 
+                consoleBuffer = ">>> OUTPUT: " + std::to_string((int)ACC);
                 break;
             case 0x3: // NOT
                 ACC = (~ACC) & 0xF;
