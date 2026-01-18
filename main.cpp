@@ -31,14 +31,15 @@ int main(int argc, char* argv[]){
     }
 
     Assembler assembler;
+    Executable exe = assembler.assemble(source);
     CPU4bit cpu;
 
-    cpu.setRAM(2,8);
-    cpu.setRAM(3,1);
-    cpu.setRAM(10, 1);
+    if (exe.machineCode.empty()) {
+    std::cout << "Compiler Error!\n";
+    return 1;
+    }
 
-    std::vector<uint8_t> program = assembler.assemble(source);
-    cpu.loadProgram(program);
+    cpu.loadProgram(exe.machineCode,exe.initialRAM);
 
     char cmd = 0;
     while (!cpu.isHalted() && cmd != 'q')

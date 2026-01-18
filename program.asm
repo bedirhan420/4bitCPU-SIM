@@ -1,54 +1,33 @@
-; --- DIZI TOPLAMA (POINTER: RAM[12]) ---
-; RAM[0]=3, RAM[1]=4, RAM[2]=2 (Toplanacak Sayilar)
-; RAM[12] = Pointer
-; RAM[13] = Sayac
-; RAM[15] = Toplam
+.data
+    dizi: 3 4 2     ; RAM[0]=3, RAM[1]=4, RAM[2]=2
+    ptr:  0         ; RAM[3] (Pointer)
+    cnt:  3         ; RAM[4] (Sayaç)
 
-BASLA:
-    ; --- 1. ADIM: Diziyi Doldur (BU KISIM COK ONEMLI) ---
-    LDI 3
-    STA 0   ; RAM[0] = 3 olsun
-
-    LDI 4
-    STA 1   ; RAM[1] = 4 olsun
-
-    LDI 2
-    STA 2   ; RAM[2] = 2 olsun
-
-    ; --- 2. ADIM: Degiskenleri Hazirla ---
+.code
+    ; --- BASLANGIC ---
     LDI 0
-    STA 12  ; Pointer (RAM[12]) baslangicta 0 olsun (RAM[0]'i gostersin)
-
-    LDI 3
-    STA 13  ; Sayac (RAM[13]) 3 olsun (3 sayi toplayacagiz)
-
-    LDI 0
-    STA 15  ; Toplam (RAM[15]) sifirla
-
+    STA 15          ; Sonucu temizle
+    
 DONGU:
-    ; Sayac bitti mi?
-    LDA 13
+    LDA cnt
     JZ BITIS
-
-    ; Pointer'in gosterdigi sayiyi al
-    LDAI 12     ; ACC = RAM[ RAM[12] ] (Yani RAM[0]'daki 3 gelecek)
-
-    ; Toplama ekle
-    ADD [15]
-    STA 15      ; Sonucu yaz
-
-    ; Pointer'i 1 arttir
+    
+    LDAI ptr        ; Pointer verisi (Doğru çalışıyor!)
+    
+    ; --- DUZELTME BURADA ---
+    ADD [15]        ; Buraya [sum] veya [F] degil, [15] yaz!
+    STA 15          ; Kaydet
+    
     LDI 1
-    ADD [12]
-    STA 12
-
-    ; Sayaci 1 azalt
+    ADD [ptr]       ; Pointer artir (Bu da artık doğru çalışıyor!)
+    STA ptr
+    
     LDI 1
-    STA 10      ; Temp
-    LDA 13
-    SUB [10]
-    STA 13
-
+    STA 10          ; Temp
+    LDA cnt
+    SUB [10]        ; Sayac azalt
+    STA cnt
+    
     JMP DONGU
 
 BITIS:

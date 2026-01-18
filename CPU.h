@@ -5,6 +5,7 @@
 #include <cstdint> // Integers with certain sizes
 #include <iostream> // input output stream
 #include <cstdlib> // C standard : mem , translations , ...
+#include <map>
 
 class CPU4bit{
 public:
@@ -31,12 +32,23 @@ public:
         STACK.resize(16, 0);
     }
 
-    void loadProgram(const std::vector<uint8_t>& code){
+    void loadProgram(const std::vector<uint8_t>& code , const std::map<int,uint8_t>& data){
         std::fill(ROM.begin(),ROM.end(),0); 
         for (size_t i=0;i<code.size();++i){
             ROM[i] = code[i];
         }
+
+        std::fill(RAM.begin(),RAM.end(),0);
+        for (auto const& [addr,val] : data)
+        {
+            if (addr<RAM.size())
+            {
+                RAM[addr] = val & 0xF;
+            }
+        }
+        
         PC = 0;
+        SP=0;
         halted = false;
     }
 
