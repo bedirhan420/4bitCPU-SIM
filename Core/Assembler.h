@@ -16,20 +16,27 @@ struct Executable
     std::map<int,uint8_t> initialRAM; 
 };
 
+struct CompileResult {
+    bool success;
+    std::string errorMessage;
+    int errorLineIndex; 
+    Executable exe;
+};
+
 
 class Assembler{
 private:
     std::map<std::string, int> symbolTable;
     int dataRAMOffset = 0;
 
-    std::string trim(const std::string& str){
+    std::string Trim(const std::string& str){
         size_t first = str.find_first_not_of(" \t\r\n"); // first char is not gap from left to right
         if (std::string::npos == first) return ""; // empty string
         size_t last = str.find_last_not_of(" \t\r\n"); // first char is not gap from right to left
         return str.substr(first,(last-first+1)); // start , how many
     }
 
-    std::string removeComments(const std::string& line){
+    std::string RemoveComments(const std::string& line){
         size_t commentPos = line.find(";");
         if (commentPos != std::string::npos) return line.substr(0,commentPos);
         return line;
@@ -39,26 +46,31 @@ public:
     Assembler(){
     }
 
-    Executable assemble(const std::string& sourceCode){
-        Executable exe;
+    CompileResult Assemble(const std::string& sourceCode){
+        CompileResult result;
+        result.success = true;
+        result.errorLineIndex = -1;
+
         std::vector<std::string> codeLines;
+        std::vector<int> originalLineIndices;
+
         std::stringstream ss(sourceCode);
         std::string line;
+        int currentLineIdx = 0;
         
         bool inDataSection = false;
-        bool inCodeSection = false;
-
         symbolTable.clear();
         dataRAMOffset = 0;
         
         while (std::getline(ss,line))
         {
-            line = removeComments(line);
-            line = trim(line);
-            if (line.empty()) continue;
+            std::string rawLine = line;
+            line = RemoveComments(line);
+            line = Trim(line);
+            if (line.empty()) {currentLineIdx++; continue;}
 
-            if (line==".data") {inDataSection = true;inCodeSection=false;continue;}
-            if (line==".code") {inDataSection = false;inCodeSection=true;continue;}
+            if (line == ".data") { inDataSection = true; currentLineIdx++; continue; }
+            if (line == ".code") { inDataSection = false; currentLineIdx++; continue; }
 
             if (inDataSection)
             {
@@ -72,20 +84,20 @@ public:
                     symbolTable[label] = dataRAMOffset;
                 }else
                 {
-                    ls.seekg(0);
-                    ls.clear();
+                    ls.seekg(0);ls.clear();
                 }
                 
                 int val;
                 while (ls >> val)
                 {
-                    exe.initialRAM[dataRAMOffset] = (uint8_t)val;
+                    result.exe.initialRAM[dataRAMOffset] = (uint8_t)val;
                     dataRAMOffset++;
                 }
-            }else if (inCodeSection || !inDataSection)
-            {
+            }else{
                 codeLines.push_back(line);
+                originalLineIndices.push_back(currentLineIdx);
             }
+            currentLineIdx++;
         }
         
         // First Pass => Symbol Resolution , label
@@ -102,8 +114,8 @@ public:
             // both label and instruct such as "START: MOV A, 5"
             if (col != std::string::npos)
             {
-                symbolTable[trim(temp.substr(0,col))] = addr; // save the text before the : as a label.
-                temp = trim(temp.substr(col+1)); //continue processing the remaining part.
+                symbolTable[Trim(temp.substr(0,col))] = addr; // save the text before the : as a label.
+                temp = Trim(temp.substr(col+1)); //continue processing the remaining part.
             }
             std::stringstream ls(temp);
             std::string m ; ls >> m; // Take the first word (Mnemonic) ;  >> : read until whitespace
@@ -118,13 +130,12 @@ public:
         }
 
         // Second Pass => Machine Code Generation
-        for (const auto& l : codeLines)
-        {   
+        for (size_t i = 0; i < codeLines.size(); ++i) {   
             // instruct
-            std::string temp = l;
+            std::string temp = codeLines[i];
             if (temp.back() == ':') continue;
             size_t col = temp.find(':');
-            if (col != std::string::npos) temp = trim(temp.substr(col+1)); // clip label , take instruct
+            if (col != std::string::npos) temp = Trim(temp.substr(col+1)); // clip label , take instruct
             if (temp.empty()) continue;
 
             // opcode 
@@ -157,27 +168,37 @@ public:
                         {
                             operand = symbolTable[cleanStr];
                         }else
-                        {
-                            try{ operand = std::stoi(cleanStr);}catch(...){operand=0;}; // string to int        
+                        {   
+                            try{ 
+                                operand = std::stoi(cleanStr);
+                            }catch(...)
+                            {
+                                result.success = false;
+                                result.errorMessage = "Invalid Operand: " + opStr;
+                                result.errorLineIndex = originalLineIndices[i];
+                                return result;
+                            };      
                         }                                      
                     }
                 }   
             }else{
-                std::cerr << "Error: Unknowned Instruction -> " << m << "\n";
-                return {};
+                result.success = false;
+                result.errorMessage = "Unknown Instruction: " + m;
+                result.errorLineIndex = originalLineIndices[i];
+                return result;
             }
 
 
             if (ISA::isTwoByteInstruction(opcode)) // such as JMP 32 => Byte 1 (JMP<<4) : [1011 0000] , Byte 2 (32) : [0010 0000] => 0xB0 0x20
             {
-                exe.machineCode.push_back((opcode << 4));
-                exe.machineCode.push_back(operand);
+                result.exe.machineCode.push_back((opcode << 4));
+                result.exe.machineCode.push_back(operand);
             }else // such as  ADD 5 => Nibble 1 (ADD): [0100]  , Nibble 2 (5): [0101] : [0100 0101] => 0x45
             {
-                exe.machineCode.push_back((opcode << 4)|(operand & 0xF));
+                result.exe.machineCode.push_back((opcode << 4)|(operand & 0xF));
             }
         }
-        return exe;
+        return result;
     }
 
 };

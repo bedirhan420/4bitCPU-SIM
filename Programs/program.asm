@@ -17,4 +17,3 @@
     OUT             ; ACC icindeki degeri (10) ekrana basar.
     
     HLT    
-   ; ABC

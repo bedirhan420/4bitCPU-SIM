@@ -7,8 +7,12 @@
 #include <cstdlib> // C standard : mem , translations , ...
 #include <map>
 #include <string>
+#include "Peripherals.h"
 
 class CPU4bit{
+private:
+    GPIO_Unit gpio;
+
 public:
     // REGISTERS
     uint8_t ACC = 0; // Accumulator Register (4 bit)
@@ -26,9 +30,9 @@ public:
     std::vector<uint8_t> STACK; // Stack (16 )
 
     bool halted = false;
+    bool isWaitingForInput = false;
 
     std::string consoleBuffer = "System Ready.";
-    bool isWaitingForInput = false;
 
     CPU4bit(){
         ROM.resize(256,0);
@@ -36,7 +40,33 @@ public:
         STACK.resize(16, 0);
     }
 
-    void loadProgram(const std::vector<uint8_t>& code , const std::map<int,uint8_t>& data){
+    void Reset(){
+        PC = 0;SP = 0; ACC = 0;Z = false;C = false;
+        halted = false; 
+        isWaitingForInput = false;
+        consoleBuffer = "System Reset.";
+    }
+
+    void ResolveInput(uint8_t val) {
+        ACC = val & 0xF; 
+        Z = (ACC == 0);  
+        isWaitingForInput = false; 
+    }
+
+    void WriteMemory(uint8_t address, uint8_t value) {
+        if (address == 15) { 
+            gpio.WriteOutputPort(value);
+        } else {
+            if(address < 16) RAM[address] = value & 0xF;
+        }
+    }
+
+    uint8_t ReadMemory(uint8_t address) {
+        if (address < 16) return RAM[address];
+        return 0;
+    }
+
+    void LoadProgram(const std::vector<uint8_t>& code , const std::map<int,uint8_t>& data){
         std::fill(ROM.begin(),ROM.end(),0); 
         for (size_t i=0;i<code.size();++i){
             ROM[i] = code[i];
@@ -51,18 +81,18 @@ public:
             }
         }
         
-        PC = 0;
-        SP=0;
+        PC = 0; ACC = 0; SP = 0; Z = false; C = false;
         halted = false;
+        gpio.Reset();
     }
 
-    void setRAM(int addr, uint8_t val){
+    void SetRAM(int addr, uint8_t val){
         if (addr >= 0 && addr<16) RAM[addr] = val & 0xF; // Lower Nibble Mask (0000 1111)
     }
 
     bool isHalted()const{return halted;}
 
-    void fetch(){
+    void Fetch(){
         /* 
         CLK is up.
         Address Bus <- PC
@@ -76,7 +106,7 @@ public:
         PC++;
     }
 
-    void execute(){
+    void Execute(){
         if(halted || isWaitingForInput) return;
 
         uint8_t opcode = (IR & 0xF0) >> 4;
@@ -87,18 +117,21 @@ public:
         case 0x0: // NOP
             break;
         case 0x1: // LDA[addr]
-            if (operand == 14) {// Memmory Mapped I/O
-                isWaitingForInput = true;
+            if (operand == 14) { 
+                isWaitingForInput = true; 
+                return; 
             }
-            else ACC = RAM[operand];
-            Z = (ACC == 0);
+            else {
+                ACC = ReadMemory(operand);
+                Z = (ACC == 0);
+            }
             break;
         case 0x2: // LDI val
             ACC = operand;
             Z = (ACC == 0);
             break;
         case 0x3: // STA [addr]
-            RAM[operand] = ACC;
+            WriteMemory(operand, ACC);
             break;
         case 0x4: // ADD [addr]
             {
@@ -167,7 +200,7 @@ public:
                 halted = true;
                 break;
             case 0x1: //RST
-                PC = 0; ACC=0; SP=0; 
+                Reset();gpio.Reset();
                 break;
             case 0x2: // OUT
                 consoleBuffer = ">>> OUTPUT: " + std::to_string((int)ACC);
@@ -205,7 +238,7 @@ public:
         }
     }
 
-    void resolveInput(int val) {
+    void ResolveInput(int val) {
         if (!isWaitingForInput) return;
 
         ACC = val & 0xF; 
@@ -215,6 +248,8 @@ public:
         isWaitingForInput = false; 
         consoleBuffer = "Input Received: " + std::to_string(val);
     }
+
+    GPIO_Unit& getGPIO() { return gpio; }
 };
 
 #endif
