@@ -28,6 +28,7 @@ public:
     bool halted = false;
 
     std::string consoleBuffer = "System Ready.";
+    bool isWaitingForInput = false;
 
     CPU4bit(){
         ROM.resize(256,0);
@@ -76,7 +77,7 @@ public:
     }
 
     void execute(){
-        if(halted) return;
+        if(halted || isWaitingForInput) return;
 
         uint8_t opcode = (IR & 0xF0) >> 4;
         uint8_t operand = (IR & 0x0F);
@@ -87,11 +88,7 @@ public:
             break;
         case 0x1: // LDA[addr]
             if (operand == 14) {// Memmory Mapped I/O
-                int val;
-                std::cout << "\n>>> ENTER A VALUE (0-15): ";
-                std::cin >> val;
-                ACC = val & 0xF;
-                RAM[14] = ACC;
+                isWaitingForInput = true;
             }
             else ACC = RAM[operand];
             Z = (ACC == 0);
@@ -208,6 +205,16 @@ public:
         }
     }
 
+    void resolveInput(int val) {
+        if (!isWaitingForInput) return;
+
+        ACC = val & 0xF; 
+        RAM[14] = ACC;   
+        Z = (ACC == 0); 
+        
+        isWaitingForInput = false; 
+        consoleBuffer = "Input Received: " + std::to_string(val);
+    }
 };
 
 #endif
