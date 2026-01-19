@@ -37,13 +37,8 @@ void DrawRAM(const CPU4bit& cpu) {
         
         DrawRectangle(x, y, 60, 60, col);
         DrawRectangleLines(x, y, 60, 60, GRAY);
-        if (i == 14) {
-             DrawText("IN", x+20, y+20, 20, WHITE);
-        } else if (i == 15) {
-             DrawText("OUT", x+15, y+20, 20, WHITE);
-        } else {
-             DrawText(TextFormat("%X", cpu.RAM[i]), x+20, y+20, 20, WHITE);
-        }
+
+        DrawText(TextFormat("%X", cpu.RAM[i]), x+20, y+20, 20, WHITE);
         DrawText(TextFormat("[%X]", i), x+2, y+45, 10, LIGHTGRAY);
     }
 }

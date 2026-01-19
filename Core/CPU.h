@@ -45,9 +45,16 @@ public:
         halted = false; 
         isWaitingForInput = false;
         consoleBuffer = "System Reset.";
+        gpio.Reset();
+        std::fill(RAM.begin(), RAM.end(), 0);
     }
 
     void ResolveInput(uint8_t val) {
+        if (!isWaitingForInput) return;
+        uint8_t safeVal = val & 0xF;
+        
+        ACC = safeVal;    
+        RAM[14] = safeVal;
         ACC = val & 0xF; 
         Z = (ACC == 0);  
         isWaitingForInput = false; 
@@ -56,6 +63,7 @@ public:
     void WriteMemory(uint8_t address, uint8_t value) {
         if (address == 15) { 
             gpio.WriteOutputPort(value);
+            RAM[15] = value & 0xF;
         } else {
             if(address < 16) RAM[address] = value & 0xF;
         }

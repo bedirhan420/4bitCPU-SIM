@@ -61,7 +61,7 @@ int main(){
                 }
 
                 if (IsKeyPressed(KEY_BACKSPACE)) {
-                    cpu.Reset();cpu.getGPIO().Reset();
+                    cpu.Reset();
                     autoRun = false;
                 }
 
@@ -104,7 +104,7 @@ int main(){
                     msgColor = RED;
                 }
             }
-            if (DrawButton((Rectangle){490, 5, 100, 40}, "SAVE AS") || (isCtrl && IsKeyPressed(KEY_S))) {
+            if (DrawButton((Rectangle){490, 5, 100, 40}, "SAVE") || (isCtrl && IsKeyPressed(KEY_S))) {
                 std::string path = SaveFileDialog();
                 if (!path.empty()) {
                     currentFilePath = path;
@@ -136,7 +136,7 @@ int main(){
             }
             if (DrawButton((Rectangle){140, 60, 80, 40}, autoRun?"PAUSE":"RUN")) autoRun = !autoRun;
             if (DrawButton((Rectangle){230, 60, 80, 40}, "RESET")) {
-                cpu.Reset();cpu.getGPIO().Reset();
+                cpu.Reset();
                 autoRun = false; 
             }
             DrawText("Shortcuts: [Space/Enter]: Step | [R]: Run/Stop | [<=]: Reset", 350, 70, 10, GRAY);
