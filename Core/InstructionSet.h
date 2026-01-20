@@ -5,6 +5,7 @@
 #include <map>
 #include <vector>
 #include <algorithm>
+#include <cstdint>
 
 namespace ISA { 
 

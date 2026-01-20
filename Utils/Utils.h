@@ -4,6 +4,7 @@
 #include <string>
 #include <fstream>
 #include <sstream>
+#include <cstdint>
 #include "raylib.h"
 #include "../Core/InstructionSet.h"
 #include "../Utils/Constants.h"

@@ -29,12 +29,12 @@ jobs:
 
     - name: Compile Project
       run: |
-        g++ main.cpp UI/TextEditor.cpp Vendor/tinyfiledialogs.c -o ide_cpu.exe -std=c++17 -lraylib -lgdi32 -lwinmm -static
+        g++ main.cpp Vendor/tinyfiledialogs.c -o cpu_sim.exe -std=c++17 -lraylib -lgdi32 -lwinmm -static
 
     - name: Copy Assets (Fonts & Icons)
       run: |
         mkdir release
-        cp ide_cpu.exe release/
+        cp cpu_sim.exe release/
         cp -r Fonts release/ || echo "Fonts folder not found"
         cp icon.png release/ || echo "Icon not found"
     
