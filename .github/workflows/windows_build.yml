@@ -24,15 +24,21 @@ jobs:
         update: true
         install: >-
           mingw-w64-x86_64-gcc
-          mingw-w64-x86_64-raylib
-          mingw-w64-x86_64-glfw
           git
+          wget
+          unzip
+
+    - name: Download Raylib (Static Version)
+      run: |
+        wget https://github.com/raysan5/raylib/releases/download/5.5/raylib-5.5_win64_mingw-w64.zip
+        unzip raylib-5.5_win64_mingw-w64.zip
+        mv raylib-5.5_win64_mingw-w64 raylib
 
     - name: Compile Project
       run: |
-        g++ main.cpp Vendor/tinyfiledialogs.c -o ide_cpu.exe -std=c++17 -lraylib -lglfw3 -lopengl32 -lgdi32 -lwinmm -lcomdlg32 -lole32 -lpthread -static -Wno-write-strings
+        g++ main.cpp Vendor/tinyfiledialogs.c -o ide_cpu.exe -std=c++17 -I./raylib/include -L./raylib/lib -lraylib -lopengl32 -lgdi32 -lwinmm -lcomdlg32 -lole32 -static -lpthread -Wno-write-strings
 
-    - name: Copy Assets (Fonts & Icons)
+    - name: Copy Assets & Upload
       run: |
         mkdir release
         cp ide_cpu.exe release/
