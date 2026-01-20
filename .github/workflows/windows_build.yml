@@ -24,9 +24,11 @@ jobs:
         update: true
         install: >-
           mingw-w64-x86_64-gcc
+          mingw-w64-x86_64-imagemagick
           git
           wget
           unzip
+          base-devel
 
     - name: Download Raylib (Static Version)
       run: |
@@ -34,19 +36,30 @@ jobs:
         unzip raylib-5.5_win64_mingw-w64.zip
         mv raylib-5.5_win64_mingw-w64 raylib
 
+    - name: Prepare Icon
+      run: |
+        # 1. PNG'yi Windows ICO formatına çevir
+        magick icon.png -define icon:auto-resize=256,128,64,48,32,16 icon.ico
+        # 2. Kaynak dosyası (.rc) oluştur
+        echo "GLFW_ICON ICON \"icon.ico\"" > resource.rc
+        # 3. İkonu derlenebilir nesneye (.o) çevir
+        windres resource.rc -o resource.o
+
     - name: Compile Project
       run: |
-        g++ main.cpp Vendor/tinyfiledialogs.c -o ide_cpu.exe -std=c++17 -I./raylib/include -L./raylib/lib -lraylib -lopengl32 -lgdi32 -lwinmm -lcomdlg32 -lole32 -static -lpthread -Wno-write-strings
+        # Not: resource.o eklendi ve -mwindows bayrağı eklendi
+        g++ main.cpp Vendor/tinyfiledialogs.c resource.o -o cpu_sim.exe -std=c++17 -I./raylib/include -L./raylib/lib -lraylib -lopengl32 -lgdi32 -lwinmm -lcomdlg32 -lole32 -static -lpthread -mwindows -Wno-write-strings
 
     - name: Copy Assets & Upload
       run: |
         mkdir release
-        cp ide_cpu.exe release/
+        cp cpu_sim.exe release/
         cp -r Fonts release/ || echo "Fonts folder not found"
-        cp icon.png release/ || echo "Icon not found"
+        # icon.png'ye artık exe yanında gerek yok ama yine de koyalım
+        cp icon.png release/
     
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: 4BitCPU-Windows
+        name: 4BitCPU-Windows-Final
         path: release/
