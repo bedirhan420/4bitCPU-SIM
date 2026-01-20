@@ -29,7 +29,7 @@ jobs:
 
     - name: Compile Project
       run: |
-        g++ main.cpp Vendor/tinyfiledialogs.c -o cpu_sim.exe -std=c++17 -lraylib -lgdi32 -lwinmm -static
+        g++ main.cpp Vendor/tinyfiledialogs.c -o ide_cpu.exe -std=c++17 -lraylib -lopengl32 -lgdi32 -lwinmm -lcomdlg32 -lole32 -static -lpthread -Wno-write-strings
 
     - name: Copy Assets (Fonts & Icons)
       run: |
