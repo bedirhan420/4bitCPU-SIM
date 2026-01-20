@@ -198,6 +198,23 @@ public:
                 result.exe.machineCode.push_back((opcode << 4)|(operand & 0xF));
             }
         }
+
+        if (result.success && result.exe.machineCode.empty()) {
+            result.success = false; 
+            result.errorMessage = "Error: No executable code found (Empty .code section).";
+            return result;
+        }
+
+        if (result.success && !result.exe.machineCode.empty()) {
+            if (result.exe.machineCode.back() != 0xF0) {
+                result.success = false;
+                result.errorMessage = "Missing Termination: Code MUST end with HLT (or DUR).";
+                if (!originalLineIndices.empty()) {
+                    result.errorLineIndex = originalLineIndices.back();
+                }
+            }
+        }
+
         return result;
     }
 

@@ -155,4 +155,28 @@ void DrawInputPopup(CPU4bit& cpu) {
     }
 }
 
+void DrawLanguageButton() {
+    int screenWidth = GetScreenWidth();
+    
+    int btnW = 40;
+    int btnH = 30;
+    int btnX = screenWidth - btnW - 10; 
+    int btnY = 10;                      
+
+    Rectangle btnRect = {(float)btnX, (float)btnY, (float)btnW, (float)btnH};
+    
+    bool isHover = CheckCollisionPointRec(GetMousePosition(), btnRect);
+    
+    if (isHover && IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+        ISA::IS_TURKISH = !ISA::IS_TURKISH; 
+    }
+
+    DrawRectangleRec(btnRect, isHover ? DARKGRAY : BLACK); 
+    DrawRectangleLinesEx(btnRect, 2, GRAY);     
+    
+    const char* text = ISA::IS_TURKISH ? "TR" : "EN";
+    int textW = MeasureText(text, 20);
+    DrawText(text, btnX + (btnW - textW)/2, btnY + 5, 20, ISA::IS_TURKISH ? RED : SKYBLUE);
+}
+
 #endif

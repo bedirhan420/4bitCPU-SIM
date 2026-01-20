@@ -70,11 +70,21 @@ inline bool DrawButton(Rectangle rect, const char* text){
 inline std::string Disassemble(uint8_t byte) {
     uint8_t opcode = (byte & 0xF0) >> 4;
     uint8_t operand = (byte & 0x0F);
+
     std::string opStr = ISA::getMnemonic(opcode, operand);
-    if (opStr.length() == 3) opStr += " "; 
-    if (ISA::isTwoByteInstruction(opcode)) return opStr + " (Addr)"; 
-    else if (opcode == 0xF || opcode == 0x0) return opStr; 
-    else if (opcode == 0x2) return opStr + " " + std::to_string(operand); // LDA value
-    else return opStr + " [" + std::to_string(operand) + "]";
+
+    if (opStr.length() == 3) opStr += " ";     
+    if (ISA::isTwoByteInstruction(opcode)) {
+        return opStr + " (Addr)"; 
+    }
+    else if (opcode == 0xF || opcode == 0x0) {
+        return opStr; 
+    }
+    else if (opcode == 0x2) { 
+        return opStr + " " + std::to_string(operand); 
+    }
+    else { 
+        return opStr + " [" + std::to_string(operand) + "]";
+    }
 }
 #endif
